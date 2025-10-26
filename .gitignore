@@ -1,0 +1,21 @@
+# Models are large, don't commit them
+*.gguf
+*.safetensors
+*.bin
+
+# Build artifacts
+build/
+*.o
+*.so
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Logs
+*.log
+
+# Personal config
+.env
+config.local.yml
