@@ -8,6 +8,64 @@ If you're tired of paying for API credits, want to keep your data private, or ju
 
 ---
 
+## ⚠️ CRITICAL: PCIe Configuration Required
+
+### 🚨 YOU MUST USE PCIe BIFURCATION ON CPU LANES 🚨
+
+**Before you do ANYTHING else, configure your BIOS properly or this WILL NOT WORK.**
+
+### The Problem
+If your GPUs are connected asymmetrically (one on CPU lanes, one on chipset lanes), tensor parallelism will **fail spectacularly**. You'll get:
+- Slow performance (10× slower than expected)
+- Mysterious crashes
+- GPU communication timeouts
+- One GPU sitting idle while the other works
+
+### The Solution
+**Both GPUs MUST be on CPU PCIe lanes, NOT chipset lanes.**
+
+### How to Fix This
+
+**1. Check Your Motherboard Manual**
+- Find which PCIe slots connect directly to CPU
+- Usually: First 2 x16 slots = CPU lanes
+- Lower slots = Chipset lanes (avoid these!)
+
+**2. BIOS Settings (CRITICAL)**
+```
+Advanced → PCI Subsystem Settings
+├── PCIe Bifurcation: Enabled
+├── First x16 Slot: x8/x8 (or x8/x8/x8/x8)
+├── Above 4G Decoding: Enabled
+└── Resizable BAR: Enabled
+```
+
+**3. Physical Installation**
+- GPU 0 in **first** x16 slot (runs at x8)
+- GPU 1 in **second** x16 slot (runs at x8)
+- Leave other slots empty (or use for non-GPU cards)
+
+**4. Verify After Boot**
+```bash
+# Both should show x8 (not x16, not x4)
+lspci | grep -i vga
+
+# Should see something like:
+# 03:00.0 VGA compatible controller: AMD ... [Radeon RX 7900 XTX] (rev c8)
+# 07:00.0 VGA compatible controller: AMD ... [Radeon RX 7900 XTX] (rev c8)
+```
+
+### Why x8/x8 Instead of x16/x16?
+- **x16 electrical**: Full 16 lanes to one GPU
+- **x8/x8 bifurcation**: Splits 16 lanes → two GPUs get 8 lanes each
+- PCIe 4.0 x8 = 128 GB/s bandwidth (plenty for LLM inference)
+- Allows both GPUs on CPU lanes = symmetric, fast communication
+
+### What Happens If You Don't Do This?
+💀 **Pain.** Don't skip this step.
+
+---
+
 ## 📊 What This Setup Can Do
 
 | Model | Size | Speed | VRAM Used | Context |
